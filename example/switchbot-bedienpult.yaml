@@ -1,0 +1,125 @@
+# Beispiel: Bedienplatine des SwitchBot Air Purifier (W5302300)
+# Testaufbau mit ESP32-WROOM DevKit, Bedienplatine ausgebaut und nur über den
+# ESP mit 3,3 V versorgt. Blau und Grau je über 1 kOhm.
+#
+#   J6 Rot     -> 3V3
+#   J6 Weiß    -> GPIO23  DIO
+#   J6 Gelb    -> GPIO22  CLK
+#   J6 Grün    -> GPIO19  STB
+#   J6 Blau    -> GPIO18  Power/WLAN-LED (aktiv Low)
+#   J6 Grau    -> GPIO17  Freigabe der 12 AiP-LEDs (aktiv High)
+#   J6 Schwarz -> GND
+
+esphome:
+  name: switchbot-bedienpult
+  friendly_name: SwitchBot Bedienpult
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+external_components:
+  - source: github://EinRainerZufall/esphome-aip1668
+    components: [aip1668]
+  # Alternativ lokal (Ordner neben dieser Datei in /config/esphome):
+  # - source:
+  #     type: local
+  #     path: components
+
+logger:
+
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+aip1668:
+  id: pult
+  clk_pin: GPIO22
+  dio_pin: GPIO23
+  stb_pin: GPIO19
+  display_mode: 6x11     # wie das Original
+  brightness: 3          # 10/16, wie das Original (0x8B)
+  half_period: 10us
+  update_interval: 20ms
+
+# --- Blau und Grau per PWM ---------------------------------------------------
+
+output:
+  - platform: ledc
+    id: grau_pwm
+    pin: GPIO17
+    frequency: 1000Hz
+
+  - platform: ledc
+    id: blau_pwm
+    pin: GPIO18
+    frequency: 1000Hz
+    inverted: true       # aktiv Low
+
+  # --- LEDs am AiP1668 (address = Byte im Display-RAM) -----------------------
+  - { platform: aip1668, id: led_stufe1,   address: 0,  bit: 7 }
+  - { platform: aip1668, id: led_stufe2,   address: 0,  bit: 6 }
+  - { platform: aip1668, id: led_stufe3,   address: 0,  bit: 5 }
+  - { platform: aip1668, id: led_auto,     address: 2,  bit: 5 }
+  - { platform: aip1668, id: led_pet,      address: 2,  bit: 6 }
+  - { platform: aip1668, id: led_sleep,    address: 2,  bit: 7 }
+  - { platform: aip1668, id: led_timer2h,  address: 5,  bit: 0 }
+  - { platform: aip1668, id: led_timer4h,  address: 5,  bit: 1 }
+  - { platform: aip1668, id: led_timer6h,  address: 5,  bit: 3 }
+  - { platform: aip1668, id: led_kinder,   address: 7,  bit: 0 }
+  - { platform: aip1668, id: led_verdeckt, address: 9,  bit: 1 }
+  - { platform: aip1668, id: led_filter,   address: 11, bit: 3 }
+
+light:
+  - platform: monochromatic
+    name: "Bedienpult Beleuchtung"   # Grau: ohne sie bleiben die 12 LEDs dunkel
+    id: pult_beleuchtung
+    output: grau_pwm
+    restore_mode: ALWAYS_ON
+    default_transition_length: 0s
+
+  - platform: monochromatic
+    name: "WLAN-LED"
+    id: wlan_led
+    output: blau_pwm
+    restore_mode: ALWAYS_ON
+    default_transition_length: 0s
+
+switch:
+  - { platform: output, output: led_stufe1,   name: "LED Stufe 1" }
+  - { platform: output, output: led_stufe2,   name: "LED Stufe 2" }
+  - { platform: output, output: led_stufe3,   name: "LED Stufe 3" }
+  - { platform: output, output: led_auto,     name: "LED Auto" }
+  - { platform: output, output: led_pet,      name: "LED Pet" }
+  - { platform: output, output: led_sleep,    name: "LED Sleep" }
+  - { platform: output, output: led_timer2h,  name: "LED Timer 2h" }
+  - { platform: output, output: led_timer4h,  name: "LED Timer 4h" }
+  - { platform: output, output: led_timer6h,  name: "LED Timer 6h" }
+  - { platform: output, output: led_kinder,   name: "LED Kindersicherung" }
+  - { platform: output, output: led_verdeckt, name: "LED verdeckt" }
+  - { platform: output, output: led_filter,   name: "LED Filter" }
+
+number:
+  - platform: template
+    name: "Bedienpult Helligkeit (AiP1668)"
+    min_value: 0
+    max_value: 7
+    step: 1
+    lambda: 'return id(pult).get_brightness();'
+    set_action:
+      - lambda: 'id(pult).set_brightness((uint8_t) x);'
+
+# --- Tasten ------------------------------------------------------------------
+
+binary_sensor:
+  - { platform: aip1668, key_byte: 0, bit: 0, name: "Taste Ein-Aus" }
+  - { platform: aip1668, key_byte: 0, bit: 3, name: "Taste Stufe" }
+  - { platform: aip1668, key_byte: 1, bit: 0, name: "Taste Modus" }
+  - { platform: aip1668, key_byte: 1, bit: 3, name: "Taste Timer" }
+  - { platform: aip1668, key_byte: 2, bit: 0, name: "Taste Kindersicherung" }
