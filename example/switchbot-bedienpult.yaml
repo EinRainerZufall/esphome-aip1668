@@ -111,9 +111,10 @@ number:
     min_value: 0
     max_value: 7
     step: 1
-    update_interval: 1s
-    lambda: 'return id(pult).get_brightness();'
-    set_action:
+    optimistic: true
+    initial_value: 3
+    restore_value: true   # bleibt über Neustarts erhalten
+    on_value:
       - lambda: 'id(pult).set_brightness((uint8_t) x);'
 
 # --- Tasten ------------------------------------------------------------------
