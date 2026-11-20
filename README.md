@@ -22,7 +22,7 @@ aip1668:
   stb_pin: GPIO19
   display_mode: 6x11      # 4x13, 5x12, 6x11, 7x10 (Grids x Segmente)
   brightness: 3           # 0..7
-  half_period: 10us       # Takt-Halbperiode, 1..100 us
+  half_period: 20us       # Takt-Halbperiode, 1..100 us
   update_interval: 20ms   # Tastenabfrage
   refresh_interval: 1s    # alles regelmäßig neu schreiben, 0 = aus
 
@@ -55,6 +55,7 @@ uint8_t k = id(pult).get_key_byte(0);
 ## Hinweise
 
 - **DIO wird beim Schreiben push-pull getrieben** und nur nach dem Lesebefehl `0x42` auf Eingang geschaltet. Im Open-Drain-Betrieb mit internen Pull-ups steigt DIO zu langsam (gemessen ca. 13 µs), der Chip liest dann nur Nullen.
+- Gedrückte Tasten meldet der Chip als High auf DIO. Das erzeugt nur der Pull-up (Open-Drain), der Anstieg dauert ohne externen Pull-up ca. 13 µs. Deshalb ist `half_period` standardmäßig 20 µs. Mit einem externen Pull-up (z. B. 4,7 kΩ auf 3,3 V) an DIO sind kürzere Zeiten möglich.
 - Das Display-RAM wird nur bei Änderungen übertragen (plus `refresh_interval`). Die Tasten werden in jedem `update_interval` gelesen.
 - Bei der SwitchBot-Bedienplatine braucht die graue Leitung an J6 High, sonst bleiben alle LEDs dunkel. Sie wird im Beispiel per PWM als Helligkeit genutzt. Die blaue Leitung ist die WLAN-LED (aktiv Low).
 

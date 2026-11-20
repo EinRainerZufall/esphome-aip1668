@@ -31,7 +31,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_STB_PIN): pins.internal_gpio_output_pin_schema,
         cv.Optional(CONF_DISPLAY_MODE, default="6x11"): cv.enum(DISPLAY_MODES, lower=True),
         cv.Optional(CONF_BRIGHTNESS, default=3): cv.int_range(min=0, max=7),
-        cv.Optional(CONF_HALF_PERIOD, default="10us"): cv.All(
+        cv.Optional(CONF_HALF_PERIOD, default="20us"): cv.All(
             cv.positive_time_period_microseconds,
             cv.Range(
                 min=cv.TimePeriod(microseconds=1), max=cv.TimePeriod(microseconds=100)

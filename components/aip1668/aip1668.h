@@ -82,7 +82,7 @@ class AIP1668Component : public PollingComponent {
   InternalGPIOPin *clk_pin_{nullptr};
   InternalGPIOPin *dio_pin_{nullptr};
   InternalGPIOPin *stb_pin_{nullptr};
-  uint32_t half_period_{10};
+  uint32_t half_period_{20};
   uint32_t refresh_interval_{1000};
   uint32_t last_refresh_{0};
 
